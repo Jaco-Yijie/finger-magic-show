@@ -9,14 +9,33 @@ export type Landmark = {
 const WASM_ROOT = "/mediapipe/wasm";
 const MODEL_PATH = "/mediapipe/hand_landmarker.task";
 
+type EmbeddedMediaPipeAssets = {
+  wasmLoaderPath: string;
+  wasmBinaryPath: string;
+  modelAssetPath: string;
+};
+
+declare global {
+  interface Window {
+    FINGER_MAGIC_ASSETS?: EmbeddedMediaPipeAssets;
+  }
+}
+
 export class HandTracker {
   private landmarker: HandLandmarker | null = null;
   private smoothedLandmarks: Landmark[] | null = null;
   private readonly smoothingFactor = 0.36;
 
   async init(): Promise<void> {
-    const vision = await FilesetResolver.forVisionTasks(WASM_ROOT);
-    this.landmarker = await this.createLandmarker(vision);
+    const embeddedAssets = window.FINGER_MAGIC_ASSETS;
+    const vision = embeddedAssets
+      ? ({
+          wasmLoaderPath: embeddedAssets.wasmLoaderPath,
+          wasmBinaryPath: embeddedAssets.wasmBinaryPath,
+        } as Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>)
+      : await FilesetResolver.forVisionTasks(WASM_ROOT);
+
+    this.landmarker = await this.createLandmarker(vision, embeddedAssets?.modelAssetPath ?? MODEL_PATH);
   }
 
   detect(video: HTMLVideoElement): Landmark[] | null {
@@ -44,10 +63,11 @@ export class HandTracker {
 
   private async createLandmarker(
     vision: Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>,
+    modelAssetPath: string,
   ): Promise<HandLandmarker> {
     const options = {
       baseOptions: {
-        modelAssetPath: MODEL_PATH,
+        modelAssetPath,
         delegate: "GPU" as const,
       },
       runningMode: "VIDEO" as const,
@@ -64,7 +84,7 @@ export class HandTracker {
       return HandLandmarker.createFromOptions(vision, {
         ...options,
         baseOptions: {
-          modelAssetPath: MODEL_PATH,
+          modelAssetPath,
           delegate: "CPU" as const,
         },
       });

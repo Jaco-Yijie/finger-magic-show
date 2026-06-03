@@ -1,6 +1,8 @@
 node_modules
 dist
 .playwright-cli
+.venv-streamlit
+__pycache__
 work
 .DS_Store
 *.local

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
+    "build:streamlit": "npm run build && node scripts/build-streamlit-app.mjs",
     "typecheck": "tsc --noEmit",
     "assets:mediapipe": "node scripts/prepare-mediapipe-assets.mjs"
   },
